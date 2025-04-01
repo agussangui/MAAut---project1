@@ -1,3 +1,21 @@
+if (!require("FSelectorRcpp")) install.packages("FSelectorRcpp", dependencies=TRUE)
+if (!require("praznik")) install.packages("praznik", dependencies=TRUE)
+if (!require("dplyr")) install.packages("dplyr", dependencies=TRUE)
+if (!require("infotheo")) install.packages("infotheo", dependencies=TRUE)
+if (!require("mRMRe")) install.packages("mRMRe", dependencies=TRUE)
+if (!require("class")) install.packages("class", dependencies = TRUE)
+
+library(FSelector)
+library(praznik)
+library(dplyr)
+library(infotheo)
+library(mRMRe)
+library(class)
+
+# Set working directory
+# getwd()
+# setwd("...");
+
 # Seed
 set.seed(123)
 
@@ -43,55 +61,134 @@ cat("Training instances:", nrow(train_data), "\n")
 cat("Testing instances:", nrow(test_data), "\n")
 
 # Exercise 3: Feature Selection
-library(FSelector)
 
 # Convert the target variable to factor
 train_data$Class <- as.factor(train_data$Class)
 
-# Apply DMIM for feature selection
-feature_scores <- information.gain(Class ~ ., train_data)
+# Get names of variables
+feature_names <- colnames(train_data)[-1]
+
+# Calculate mutual information between each feature and target variable
+mi_values <- FSelectorRcpp::information_gain(Class ~ ., train_data)
+print(mi_values)
+
+# Convert to lists
+X <- train_data[, feature_names]
+Y <- train_data$Class
+
+# Selected features list
+S <- c()
+
+#----------------------------------
+# Forward feature selection methods
+#----------------------------------
+
+# MIM (Mutual Information Maximization)
+# mim_ranking <- mi_values %>% arrange(desc(importance))
+mim_ranking <- praznik::MIM(X, Y, k = length(feature_names))
+print("MIM Ranking:")
+print(mim_ranking)
+
+# MIFS (Mutual Information Feature Selection)
+#-------------------------------------------------------
+
+
+# mRMR (Minimum Redundancy Maximum Relevance)
+mrmr_ranking <- praznik::MRMR(X, Y, k = length(feature_names))
+print("mRMR Ranking:")
+print(mrmr_ranking)
+
+# maxMIFS (Máxima Penalización de Información Mutua)
+#-------------------------------------------------------
+# max_mifs_ranking <- mi_values %>%
+#   mutate(score = MI - sapply(feature, function(x) max(FSelectorRcpp::mutual_information(X[[x]], X)))) %>%
+#   arrange(desc(score))
+
+# CIFE (Conditional Infomax Feature Extraction)
+#-------------------------------------------------------
+#cife_ranking <- praznik::CIFE(X, Y, k = length(feature_names))
+
+# JMI (Joint Mutual Information)
+jmi_ranking <- praznik::JMI(X, Y, k = length(feature_names))
+print("JMI Ranking:")
+print(jmi_ranking)
+
+# CMIM (Conditional Mutual Information Maximization)
+cmim_ranking <- praznik::CMIM(X, Y, k = length(feature_names))
+print("CMIM Ranking:")
+print(cmim_ranking)
+
+# JMIM (Joint Mutual Information Maximization)
+jmim_ranking <- praznik::JMIM(X, Y, k = length(feature_names))
+print("JMIM Ranking:")
+print(jmim_ranking)
+
+# DMIM (Dynamic Mutual Information Maximization)
+#-------------------------------------------------------
+# dmim_ranking <- mi_values %>%
+#   mutate(score = MI - sapply(feature, function(x) max(FSelectorRcpp::mutual_information(X[[x]], X))) +
+#            sapply(feature, function(x) max(FSelectorRcpp::conditional_mutual_information(X[[x]], X, Y)))) %>%
+#   arrange(desc(score))
 
 # Sort features by importance
-feature_scores <- data.frame(attributes = rownames(feature_scores), importance = feature_scores$attr_importance)
-top_features <- feature_scores[order(-feature_scores$importance), ]
 
-# Display the top 10 and top 20 features
-print("Top 10 features:")
-print(top_features[1:10, ])
+process_and_predict <- function(mim_sorted, train_data, test_data, k = 3) {
+  # Extract top 10 and top 20 features
+  top_10_features <- names(sort(mim_sorted, decreasing = TRUE))[1:10]
+  top_20_features <- names(sort(mim_sorted, decreasing = TRUE))[1:20]
+  
+  # Eliminate NA values
+  top_10_features_clean <- top_10_features[!is.na(top_10_features)]
+  top_20_features_clean <- top_20_features[!is.na(top_20_features)]
+  
+  # Select data based on the top features
+  train_data_10 <- train_data[, c("Class", top_10_features_clean)]
+  test_data_10 <- test_data[, c("Class", top_10_features_clean)]
+  
+  train_data_20 <- train_data[, c("Class", top_20_features_clean)]
+  test_data_20 <- test_data[, c("Class", top_20_features_clean)]
+  
+  # Apply k-NN for top 10 features
+  pred_10 <- knn(train = train_data_10[,-1], test = test_data_10[,-1], 
+                 cl = train_data_10$Class, k = k)
+  
+  # Apply k-NN for top 20 features
+  pred_20 <- knn(train = train_data_20[,-1], test = test_data_20[,-1], 
+                 cl = train_data_20$Class, k = k)
+  
+  # Store predictions in the test data
+  test_data_10$Predicted <- pred_10
+  test_data_20$Predicted <- pred_20
+  
+  # Display predictions
+  cat("Predictions with the top 10 most important features:\n")
+  print(table(test_data_10$Class, test_data_10$Predicted))
+  
+  cat("\nPredictions with the top 20 most important features:\n")
+  print(table(test_data_20$Class, test_data_20$Predicted))
+  
+  # Return the processed test data as output
+  return(list(test_data_10 = test_data_10, test_data_20 = test_data_20))
+}
 
-print("Top 20 features:")
-print(top_features[1:20, ])
 
-# Exercise 5a: Train k-NN with k = 3
-library(class)
+# Process and predict
+mim_sorted <- mim_ranking$score
+print(mim_sorted)
+results <- process_and_predict(mim_sorted, train_data, test_data, k = 3)
 
-# Select top 10 and top 20 features for training and testing
-top_10_features <- as.character(top_features$attributes[1:10])
-top_20_features <- as.character(top_features$attributes[1:20])
+mrmr_sorted <- mrmr_ranking$score
+print(mrmr_sorted)
+results <- process_and_predict(mrmr_sorted, train_data, test_data, k = 3)
 
-# Omit NA in tables
-top_10_features <- na.omit(top_10_features)
-top_20_features <- na.omit(top_20_features)
+jmi_sorted <- jmi_ranking$score
+print(jmi_sorted)
+results <- process_and_predict(jmi_sorted, train_data, test_data, k = 3)
 
-train_data_10 <- train_data[, c("Class", top_10_features)]
-test_data_10 <- test_data[, c("Class", top_10_features)]
+cmim_sorted <- cmim_ranking$score
+print(cmim_sorted)
+results <- process_and_predict(cmim_sorted, train_data, test_data, k = 3)
 
-train_data_20 <- train_data[, c("Class", top_20_features)]
-test_data_20 <- test_data[, c("Class", top_20_features)]
-
-# Train and predict using k-NN (k=3)
-k <- 3
-pred_10 <- knn(train = train_data_10[,-1], test = test_data_10[,-1], 
-               cl = train_data_10$Class, k = k)
-pred_20 <- knn(train = train_data_20[,-1], test = test_data_20[,-1], 
-               cl = train_data_20$Class, k = k)
-
-# Store predictions
-test_data_10$Predicted <- pred_10
-test_data_20$Predicted <- pred_20
-
-print("Predictions with top 10 features:")
-print(table(test_data_10$Class, test_data_10$Predicted))
-
-print("Predictions with top 20 features:")
-print(table(test_data_20$Class, test_data_20$Predicted))
+jmim_sorted <- jmim_ranking$score
+print(jmim_sorted)
+results <- process_and_predict(jmim_sorted, train_data, test_data, k = 3)
