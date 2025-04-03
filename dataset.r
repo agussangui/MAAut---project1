@@ -107,14 +107,12 @@ print(mrmr_ranking)
 
 # maxMIFS (Máxima Penalización de Información Mutua)
 # already sorted by scores
-#-------------------------------------------------------
 max_mifs_ranking <- maxMIFS(X, Y, 0.5, k = length(feature_names))
 print("maxMIFS Ranking:")
 print(max_mifs_ranking)
 
 # CIFE (Conditional Infomax Feature Extraction)
 # already sorted by scores
-#-------------------------------------------------------
 cife_ranking <- CIFE(X, Y, 0.5, k = length(feature_names))
 print("CIFE Ranking:")
 print(cife_ranking)
@@ -135,11 +133,10 @@ print("JMIM Ranking:")
 print(jmim_ranking)
 
 # DMIM (Dynamic Mutual Information Maximization)
-#-------------------------------------------------------
-# dmim_ranking <- mi_values %>%
-#   mutate(score = MI - sapply(feature, function(x) max(FSelectorRcpp::mutual_information(X[[x]], X))) +
-#            sapply(feature, function(x) max(FSelectorRcpp::conditional_mutual_information(X[[x]], X, Y)))) %>%
-#   arrange(desc(score))
+# already sorted by scores
+dmim_ranking <- DMIM(X, Y, k = length(feature_names))
+print("DMIM Ranking:")
+print(dmim_ranking)
 
 # Sort features by importance
 
@@ -215,3 +212,7 @@ results <- process_and_predict(cmim_sorted, train_data, test_data, k = 3)
 jmim_sorted <- jmim_ranking$score
 print(jmim_sorted)
 results <- process_and_predict(jmim_sorted, train_data, test_data, k = 3)
+
+dmim_sorted <- dmim_ranking$score
+print(dmim_sorted)
+results <- process_and_predict(dmim_sorted, train_data, test_data, k = 3)

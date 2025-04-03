@@ -161,3 +161,67 @@ CIFE <- function(X, Y, beta = 0.5, k = ncol(X)) {
     score = scores
   )
 }
+
+library(infotheo)
+library(praznik)
+
+DMIM <- function(X, Y, k = ncol(X)) {
+
+  # Convert input to proper formats
+  X <- as.data.frame(X)
+  Y <- as.factor(Y)
+  feature_names <- colnames(X)
+  
+  # Initialize results storage
+  selected_features <- character(0)
+  remaining_features <- feature_names
+  feature_scores <- setNames(rep(0, length(feature_names)), feature_names)
+  
+  # Precompute target entropy for normalization
+  H_Y <- entropy(Y)
+  
+  # DMIM feature selection process
+  for (i in 1:k) {
+    # Calculate mutual information with target for remaining features
+    mi_target <- sapply(remaining_features, function(f) {
+      x_disc <- discretize(X[[f]])
+      mutinformation(x_disc, Y) / H_Y  # Normalized MI
+    })
+    
+    # Calculate dynamic redundancy term
+    redundancy <- if (length(selected_features) > 0) {
+      sapply(remaining_features, function(f) {
+        max(sapply(selected_features, function(s) {
+          # Dynamic term: I(f;S) - I(f;Y|S)
+          x_f <- discretize(X[[f]])
+          x_s <- discretize(X[[s]])
+          
+          mi_fs <- mutinformation(x_f, x_s) / H_Y
+          cmi_fs_y <- condinformation(x_f, Y, x_s) / H_Y
+          
+          mi_fs - cmi_fs_y  # Core DMIM term
+        }))
+      })
+    } else {
+      rep(0, length(remaining_features))
+    }
+    
+    # Calculate DMIM criterion scores
+    dmim_scores <- mi_target - redundancy
+    
+    # Select feature with maximum DMIM score
+    best_idx <- which.max(dmim_scores)
+    best_feature <- remaining_features[best_idx]
+    
+    # Update results
+    feature_scores[best_feature] <- dmim_scores[best_idx]
+    selected_features <- c(selected_features, best_feature)
+    remaining_features <- setdiff(remaining_features, best_feature)
+  }
+  
+  # Return results in consistent format (unsorted)
+  list(
+    selection = setNames(match(feature_names, feature_names), feature_names),
+    score = feature_scores
+  )
+}
