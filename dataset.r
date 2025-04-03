@@ -113,8 +113,11 @@ print("maxMIFS Ranking:")
 print(max_mifs_ranking)
 
 # CIFE (Conditional Infomax Feature Extraction)
+# already sorted by scores
 #-------------------------------------------------------
-#cife_ranking <- praznik::CIFE(X, Y, k = length(feature_names))
+cife_ranking <- CIFE(X, Y, 0.5, k = length(feature_names))
+print("CIFE Ranking:")
+print(cife_ranking)
 
 # JMI (Joint Mutual Information)
 jmi_ranking <- praznik::JMI(X, Y, k = length(feature_names))
@@ -196,6 +199,10 @@ results <- process_and_predict(mrmr_sorted, train_data, test_data, k = 3)
 max_mifs_sorted <- max_mifs_ranking$score
 print(max_mifs_sorted)
 results <- process_and_predict(max_mifs_sorted, train_data, test_data, k = 3)
+
+cife_sorted <- cife_ranking$score
+print(cife_sorted)
+results <- process_and_predict(cife_sorted, train_data, test_data, k = 3)
 
 jmi_sorted <- jmi_ranking$score
 print(jmi_sorted)

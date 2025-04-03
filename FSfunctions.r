@@ -103,3 +103,61 @@ maxMIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
     score = scores
   )
 }
+
+CIFE <- function(X, Y, beta = 0.5, k = ncol(X)) {
+  # Convert input keeping native column order
+  X <- as.data.frame(X)
+  Y <- as.factor(Y)
+  
+  # Get features in original order
+  features <- colnames(X)
+  
+  # Initialize results
+  scores <- setNames(rep(NA, ncol(X)), features)
+  selected <- character(0)
+  
+  # Precompute entropy
+  H_Y <- entropy(Y)
+  
+  for (i in 1:k) {
+    remaining <- setdiff(features, selected)
+    
+    # Calculate CIFE criterion: I(f;Y) - β[I(f;S) - I(f;S|Y)]
+    if (length(selected) > 0) {
+      redundancy <- sapply(remaining, function(f) {
+        sum(sapply(selected, function(s) {
+          # I(f;S) - I(f;S|Y)
+          mi_fs <- mutinformation(discretize(X[[f]]), discretize(X[[s]])) / H_Y
+          cmi_fs_y <- (mutinformation(discretize(X[[f]]), discretize(X[[s]])) - 
+                         condinformation(discretize(X[[f]]), discretize(X[[s]]), Y)) / H_Y
+          mi_fs - cmi_fs_y
+        }))
+      })
+    } else {
+      redundancy <- setNames(rep(0, length(remaining)), remaining)
+    }
+    
+    # Calculate relevance I(f;Y)
+    relevance <- sapply(remaining, function(f) {
+      mutinformation(discretize(X[[f]]), Y) / H_Y
+    })
+    
+    # CIFE score
+    current_scores <- relevance - beta * redundancy
+    
+    # Select best feature without reordering
+    best_idx <- which.max(current_scores)
+    best_feature <- names(current_scores)[best_idx]
+    scores[best_feature] <- current_scores[best_idx]
+    selected <- c(selected, best_feature)
+  }
+  
+  # Fill NA with 0 without reordering
+  scores[is.na(scores)] <- 0
+  
+  # Return in original feature order
+  list(
+    selection = setNames(seq_along(features), features),
+    score = scores
+  )
+}
