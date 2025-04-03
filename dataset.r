@@ -107,13 +107,13 @@ print(mrmr_ranking)
 
 # maxMIFS (Máxima Penalización de Información Mutua)
 # already sorted by scores
-max_mifs_ranking <- maxMIFS(X, Y, 0.5, k = length(feature_names))
+max_mifs_ranking <- maxMIFS(X, Y, k = length(feature_names))
 print("maxMIFS Ranking:")
 print(max_mifs_ranking)
 
 # CIFE (Conditional Infomax Feature Extraction)
 # already sorted by scores
-cife_ranking <- CIFE(X, Y, 0.5, k = length(feature_names))
+cife_ranking <- CIFE(X, Y, k = length(feature_names))
 print("CIFE Ranking:")
 print(cife_ranking)
 

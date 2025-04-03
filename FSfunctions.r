@@ -16,10 +16,10 @@ MIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
   # Precompute entropy
   H_Y <- entropy(Y)
   
-  # Precompute mutual information with target
+  # Precompute MI(f;Y) - mutual information with target
   mi_target <- sapply(X, function(x) {
     x_disc <- discretize(x)
-    mutinformation(x_disc, Y) / H_Y
+    mutinformation(x_disc, Y) / H_Y  # Normalized MI(f;Y)
   })
   
   for (i in 1:k) {
@@ -28,6 +28,7 @@ MIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
     redundancy <- if (length(selected) > 0) {
       sapply(remaining, function(f) {
         mean(sapply(selected, function(s) {
+          # Calculate MI(f;S) - mutual information between features
           mutinformation(discretize(X[[f]]), discretize(X[[s]])) / H_Y
         }))
       })
@@ -35,7 +36,7 @@ MIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
       setNames(rep(0, length(remaining)), remaining)
     }
     
-    # Calculate scores
+    # Calculate scores: MI(f;Y) - β*MI(f;S)
     current_scores <- mi_target[remaining] - beta * redundancy
     
     # Select best feature
@@ -51,13 +52,12 @@ MIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
   )
 }
 
-
-maxMIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
+maxMIFS <- function(X, Y, beta = 1, k = ncol(X)) {
   # Convert input keeping native column order
   X <- as.data.frame(X)
   Y <- as.factor(Y)
   
-  # Get features in whatever order they come
+  # Get features in original order
   features <- colnames(X)
   
   # Initialize in native order
@@ -70,10 +70,11 @@ maxMIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
   for (i in 1:k) {
     remaining <- setdiff(features, selected)
     
-    # Calculate maximum redundancy (maxMIFS difference)
+    # Calculate maximum redundancy: max(MI(f;S)) over selected features
     redundancy <- if (length(selected) > 0) {
       sapply(remaining, function(f) {
         max(sapply(selected, function(s) {
+          # Mutual information MI(f;S)
           mutinformation(discretize(X[[f]]), discretize(X[[s]])) / H_Y
         }))
       })
@@ -81,11 +82,12 @@ maxMIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
       setNames(rep(0, length(remaining)), remaining)
     }
     
-    # Get scores in native order
+    # Get MI(f;Y) scores in native order
     mi_scores <- sapply(remaining, function(f) {
       mutinformation(discretize(X[[f]]), Y) / H_Y
     })
     
+    # maxMIFS criterion: MI(f;Y) - β*max(MI(f;S))
     current_scores <- mi_scores - beta * redundancy
     
     # Select without reordering
@@ -104,7 +106,7 @@ maxMIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
   )
 }
 
-CIFE <- function(X, Y, beta = 0.5, k = ncol(X)) {
+CIFE <- function(X, Y, beta = 1, k = ncol(X)) {
   # Convert input keeping native column order
   X <- as.data.frame(X)
   Y <- as.factor(Y)
@@ -122,14 +124,15 @@ CIFE <- function(X, Y, beta = 0.5, k = ncol(X)) {
   for (i in 1:k) {
     remaining <- setdiff(features, selected)
     
-    # Calculate CIFE criterion: I(f;Y) - β[I(f;S) - I(f;S|Y)]
+    # Calculate CIFE criterion: MI(f;Y) - β[MI(f;S) - CMI(f;S|Y)]
     if (length(selected) > 0) {
       redundancy <- sapply(remaining, function(f) {
         sum(sapply(selected, function(s) {
-          # I(f;S) - I(f;S|Y)
+          # Calculate MI(f;S) - mutual information
           mi_fs <- mutinformation(discretize(X[[f]]), discretize(X[[s]])) / H_Y
-          cmi_fs_y <- (mutinformation(discretize(X[[f]]), discretize(X[[s]])) - 
-                         condinformation(discretize(X[[f]]), discretize(X[[s]]), Y)) / H_Y
+          # Calculate CMI(f;S|Y) - conditional mutual information
+          cmi_fs_y <- condinformation(discretize(X[[f]]), discretize(X[[s]]), Y) / H_Y
+          # Core CIFE term: MI(f;S) - CMI(f;S|Y)
           mi_fs - cmi_fs_y
         }))
       })
@@ -137,12 +140,12 @@ CIFE <- function(X, Y, beta = 0.5, k = ncol(X)) {
       redundancy <- setNames(rep(0, length(remaining)), remaining)
     }
     
-    # Calculate relevance I(f;Y)
+    # Calculate relevance MI(f;Y)
     relevance <- sapply(remaining, function(f) {
       mutinformation(discretize(X[[f]]), Y) / H_Y
     })
     
-    # CIFE score
+    # CIFE score: MI(f;Y) - β[MI(f;S) - CMI(f;S|Y)]
     current_scores <- relevance - beta * redundancy
     
     # Select best feature without reordering
@@ -155,18 +158,13 @@ CIFE <- function(X, Y, beta = 0.5, k = ncol(X)) {
   # Fill NA with 0 without reordering
   scores[is.na(scores)] <- 0
   
-  # Return in original feature order
   list(
     selection = setNames(seq_along(features), features),
     score = scores
   )
 }
 
-library(infotheo)
-library(praznik)
-
 DMIM <- function(X, Y, k = ncol(X)) {
-
   # Convert input to proper formats
   X <- as.data.frame(X)
   Y <- as.factor(Y)
@@ -182,44 +180,39 @@ DMIM <- function(X, Y, k = ncol(X)) {
   
   # DMIM feature selection process
   for (i in 1:k) {
-    # Calculate mutual information with target for remaining features
+    # Calculate MI(f;Y) for remaining features
     mi_target <- sapply(remaining_features, function(f) {
       x_disc <- discretize(X[[f]])
-      mutinformation(x_disc, Y) / H_Y  # Normalized MI
+      mutinformation(x_disc, Y) / H_Y  # Normalized MI(f;Y)
     })
     
-    # Calculate dynamic redundancy term
+    # Calculate dynamic redundancy term: max[MI(f;S) - CMI(f;Y|S)]
     redundancy <- if (length(selected_features) > 0) {
       sapply(remaining_features, function(f) {
         max(sapply(selected_features, function(s) {
-          # Dynamic term: I(f;S) - I(f;Y|S)
-          x_f <- discretize(X[[f]])
-          x_s <- discretize(X[[s]])
-          
-          mi_fs <- mutinformation(x_f, x_s) / H_Y
-          cmi_fs_y <- condinformation(x_f, Y, x_s) / H_Y
-          
-          mi_fs - cmi_fs_y  # Core DMIM term
+          # Calculate MI(f;S) - mutual information
+          mi_fs <- mutinformation(discretize(X[[f]]), discretize(X[[s]])) / H_Y
+          # Calculate CMI(f;Y|S) - conditional mutual information
+          cmi_fy_s <- condinformation(discretize(X[[f]]), Y, discretize(X[[s]])) / H_Y
+          # Core DMIM term: MI(f;S) - CMI(f;Y|S)
+          mi_fs - cmi_fy_s
         }))
       })
     } else {
       rep(0, length(remaining_features))
     }
     
-    # Calculate DMIM criterion scores
+    # DMIM criterion: MI(f;Y) - max[MI(f;S) - CMI(f;Y|S)]
     dmim_scores <- mi_target - redundancy
     
     # Select feature with maximum DMIM score
     best_idx <- which.max(dmim_scores)
     best_feature <- remaining_features[best_idx]
-    
-    # Update results
     feature_scores[best_feature] <- dmim_scores[best_idx]
     selected_features <- c(selected_features, best_feature)
     remaining_features <- setdiff(remaining_features, best_feature)
   }
   
-  # Return results in consistent format (unsorted)
   list(
     selection = setNames(match(feature_names, feature_names), feature_names),
     score = feature_scores
