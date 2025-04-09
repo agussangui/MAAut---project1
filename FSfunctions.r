@@ -1,6 +1,7 @@
 library(infotheo)
 
 calculate_k <- function(n, type = "u", c = NULL) {
+  return (ceiling(sqrt(n))) # solution to have MI >=0
   if (type == "u") {
     ceiling(sqrt(n))
   } else if (type == "j") {
@@ -59,7 +60,6 @@ mutualinformation_class_relevance <- function(n,c,x,s,y) {
   H_XSY <- entropy(cbind(x_disc, s_disc, y)) - H_Y + log(delta_cond_x) + log(delta_cond_s) 
   
   mi <- H_XY + H_SY - H_XSY
-  pmax(0, mi)
 }
 
 MIM <- function(X, Y, k = ncol(X)) {
