@@ -70,9 +70,10 @@ MIM <- function(X, Y, beta = 0.5, k = ncol(X)) {
   })
   
   
+  ordered_features <- names(sort(mi_target, decreasing = TRUE))
+  
   list(
-    selection = structure(match(feature_names, feature_names), 
-                          names = feature_names),
+    selection = structure(match(ordered_features, feature_names), names = ordered_features),
     score = sort(mi_target, decreasing = TRUE)
   )
 }
@@ -120,11 +121,13 @@ MIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
     selected <- c(selected, best_feature)
   }
   
+  ordered_features <- names(sort(mi_target, decreasing = TRUE))
+  
   list(
-    selection = structure(match(feature_names, feature_names), 
-                          names = feature_names),
-    score = sort(scores, decreasing = TRUE)
+    selection = structure(match(ordered_features, feature_names), names = ordered_features),
+    score = sort(mi_target, decreasing = TRUE)
   )
+  
 }
 
 mRMR <- function(X, Y, k = ncol(X)) {
@@ -170,10 +173,11 @@ mRMR <- function(X, Y, k = ncol(X)) {
     selected <- c(selected, best_feature)
   }
   
+  ordered_features <- names(sort(mi_target, decreasing = TRUE))
+  
   list(
-    selection = structure(match(feature_names, feature_names), 
-                          names = feature_names),
-    score = sort(scores, decreasing = TRUE)
+    selection = structure(match(ordered_features, feature_names), names = ordered_features),
+    score = sort(mi_target, decreasing = TRUE)
   )
 }
 
@@ -220,10 +224,11 @@ maxMIFS <- function(X, Y, beta = 1, k = ncol(X)) {
     selected <- c(selected, best_feature)
   }
   
+  ordered_features <- names(sort(mi_target, decreasing = TRUE))
+  
   list(
-    selection = structure(match(feature_names, feature_names), 
-                          names = feature_names),
-    score = sort(scores, decreasing = TRUE)
+    selection = structure(match(ordered_features, feature_names), names = ordered_features),
+    score = sort(mi_target, decreasing = TRUE)
   )
 }
 
@@ -279,8 +284,10 @@ CIFE <- function(X, Y, beta = 1, k = ncol(X)) {
   # Fill NA with 0 without reordering
   scores[is.na(scores)] <- 0
   
+  ordered_features <- names(sort(scores, decreasing = TRUE))
+  
   list(
-    selection = setNames(seq_along(features), features),
+    selection = structure(match(ordered_features, features), names = ordered_features),
     score = sort(scores, decreasing = TRUE)
   )
 }
@@ -337,8 +344,10 @@ JMI <- function(X, Y, beta = 1, k = ncol(X)) {
   # Fill NA with 0 without reordering
   scores[is.na(scores)] <- 0
   
+  ordered_features <- names(sort(scores, decreasing = TRUE))
+  
   list(
-    selection = setNames(seq_along(features), features),
+    selection = structure(match(ordered_features, features), names = ordered_features),
     score = sort(scores, decreasing = TRUE)
   )
 }
@@ -390,9 +399,10 @@ CMIM <- function(X, Y, k = ncol(X)) {
     selected <- c(selected, best_feature)
   }
   
+  ordered_features <- names(sort(scores, decreasing = TRUE))
+  
   list(
-    selection = structure(match(feature_names, feature_names), 
-                          names = feature_names),
+    selection = structure(match(ordered_features, feature_names), names = ordered_features),
     score = sort(scores, decreasing = TRUE)
   )
 }
@@ -446,9 +456,10 @@ DMIM <- function(X, Y, k = ncol(X)) {
     selected <- c(selected, best_feature)
   }
   
+  ordered_features <- names(sort(scores, decreasing = TRUE))
+  
   list(
-    selection = structure(match(feature_names, feature_names), 
-                          names = feature_names),
+    selection = structure(match(ordered_features, feature_names), names = ordered_features),
     score = sort(scores, decreasing = TRUE)
   )
 }
