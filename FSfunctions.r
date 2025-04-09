@@ -21,17 +21,22 @@ mutualinformation <- function(x_disc,y) {
     mi <- H_X + H_Y - H_XY      
 }
 
-mutualinformation_btw_features <- function(n,X,x_disc,s_disc) {
+mutualinformation_btw_features <- function(n,x,s) {
+  x_disc <- discretize(x)
+  s_disc <- discretize(s)
+  
   # Calculate entropy error
   # deltas
-  delta_univ <- (max(X) - min(X)) / calculate_k(n,"u")
-  delta_joint <- (max(X) - min(X)) / calculate_k(n,"j")
+  delta_univ_x <- (max(x) - min(x)) / calculate_k(n,"u")
+  delta_univ_s <- (max(s) - min(s)) / calculate_k(n,"u")
+  delta_joint_x <- (max(x) - min(x)) / calculate_k(n,"j")
+  delta_joint_s <- (max(s) - min(s)) / calculate_k(n,"j")
   
-  H_X <- entropy(x_disc) + log(delta_univ) 
-  H_S <- entropy(s_disc) + log(delta_univ) 
-  H_SY <- infotheo::entropy(cbind(x_disc, s_disc)) + 2*log(delta_joint)
+  H_X <- entropy(x_disc) + log(delta_univ_x) 
+  H_S <- entropy(s_disc) + log(delta_univ_s) 
+  H_XS <- infotheo::entropy(cbind(x_disc, s_disc)) + log(delta_joint_x) + log(delta_joint_s)
     
-  mi <- H_X + H_S - H_SY
+  mi <- H_X + H_S - H_XS
 }
 
 # c = length(unique(C))  
@@ -105,7 +110,7 @@ MIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
       sapply(remaining, function(f) {
         sum(sapply(selected, function(s) {
           # Calculate MI(f;S) - mutual information between features
-          mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]]))
+          mutualinformation_btw_features(n,X[[f]], X[[s]])
         }))
       })
     } else {
@@ -157,7 +162,7 @@ mRMR <- function(X, Y, k = ncol(X)) {
       sapply(remaining, function(f) {
         sum(sapply(selected, function(s) {
           # Calculate MI(f;S) - mutual information between features
-          mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]]))
+          mutualinformation_btw_features(n,X[[f]], X[[s]] )
         })) / length(selected)
       })
     } else {
@@ -208,7 +213,7 @@ maxMIFS <- function(X, Y, beta = 1, k = ncol(X)) {
       sapply(remaining, function(f) {
         max(sapply(selected, function(s) {
           # Calculate MI(f;S) - mutual information between features
-          mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]]))
+          mutualinformation_btw_features(n,X[[f]], X[[s]] )
         }))
       })
     } else {
@@ -255,7 +260,7 @@ CIFE <- function(X, Y, beta = 1, k = ncol(X)) {
       redundancy <- sapply(remaining, function(f) {
         sum(sapply(selected, function(s) {
           # Calculate MI(f;S) - mutual information
-          mi_fs <- mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]]))
+          mi_fs <- mutualinformation_btw_features(n,X[[f]], X[[s]] )
           # Calculate CMI(f;S|Y) - conditional mutual information
           cmi_fs_y <- mutualinformation_class_relevance(n,c,X,discretize(X[[f]]), discretize(X[[s]]), Y)
           # Core CIFE term: MI(f;S) - CMI(f;S|Y)
@@ -315,7 +320,7 @@ JMI <- function(X, Y, beta = 1, k = ncol(X)) {
       redundancy <- sapply(remaining, function(f) {
         sum(sapply(selected, function(s) {
           # Calculate MI(f;S) - mutual information
-          mi_fs <- mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]]))
+          mi_fs <- mutualinformation_btw_features(n,X[[f]], X[[s]] )
           # Calculate CMI(f;S|Y) - conditional mutual information
           cmi_fs_y <- mutualinformation_class_relevance(n,c,X,discretize(X[[f]]), discretize(X[[s]]), Y)
           # Core CIFE term: MI(f;S) - CMI(f;S|Y)
@@ -379,7 +384,7 @@ CMIM <- function(X, Y, k = ncol(X)) {
       sapply(remaining, function(f) {
         max(sapply(selected, function(s) {
           # Calculate MI(f;S) - mutual information
-          mi_fs <- mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]])) 
+          mi_fs <- mutualinformation_btw_features(n,X[[f]], X[[s]] )
           # Calculate CMI(f;Y|S) - conditional mutual information
           cmi_fy_s <- mutualinformation_class_relevance(n,c,X,discretize(X[[f]]), discretize(X[[s]]), Y) 
           # Core DMIM term: MI(f;S) - CMI(f;Y|S)
@@ -435,7 +440,7 @@ DMIM <- function(X, Y, k = ncol(X)) {
       sapply(remaining, function(f) {
         max(sapply(selected, function(s) {
           # Calculate MI(f;S) - mutual information
-          mi_fs <- mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]]))
+          mi_fs <- mutualinformation_btw_features(n,X[[f]], X[[s]] )
         })) 
         - 
         max(sapply(selected, function(s) {
