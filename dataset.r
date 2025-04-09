@@ -79,7 +79,7 @@ print(mi_values)
 # Convert to lists
 X <- train_data[, feature_names]
 Y <- train_data$Class
-print(Y)
+
 # Selected features list
 S <- c()
 

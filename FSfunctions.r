@@ -62,7 +62,7 @@ mutualinformation_class_relevance <- function(n,c,x,s,y) {
   pmax(0, mi)
 }
 
-MIM <- function(X, Y, beta = 0.5, k = ncol(X)) {
+MIM <- function(X, Y, k = ncol(X)) {
   # Convert input to data frame and factor
   X <- as.data.frame(X)
   Y <- as.factor(Y)
@@ -192,7 +192,7 @@ mRMR <- function(X, Y, k = ncol(X)) {
   )
 }
 
-maxMIFS <- function(X, Y, beta = 1, k = ncol(X)) {
+maxMIFS <- function(X, Y, k = ncol(X)) {
   # Convert input to data frame and factor
   X <- as.data.frame(X)
   Y <- as.factor(Y)
@@ -227,7 +227,7 @@ maxMIFS <- function(X, Y, beta = 1, k = ncol(X)) {
     }
     
     # Calculate scores: MI(f;Y) - max(MI(f;S))
-    current_scores <- mi_target[remaining] - beta * redundancy
+    current_scores <- mi_target[remaining] - redundancy
     
     # Select best feature
     best_feature <- names(which.max(current_scores))
@@ -243,7 +243,7 @@ maxMIFS <- function(X, Y, beta = 1, k = ncol(X)) {
   )
 }
 
-CIFE <- function(X, Y, beta = 1, k = ncol(X)) {
+CIFE <- function(X, Y, k = ncol(X)) {
   # Convert input keeping native column order
   X <- as.data.frame(X)
   Y <- as.factor(Y)
@@ -282,8 +282,8 @@ CIFE <- function(X, Y, beta = 1, k = ncol(X)) {
       mutualinformation(discretize(X[[f]]), Y) 
     })
     
-    # CIFE score: MI(f;Y) - β[MI(f;S) - CMI(f;S|Y)]
-    current_scores <- relevance - beta * redundancy
+    # CIFE score: MI(f;Y) - sum[MI(f;S) - CMI(f;S|Y)]
+    current_scores <- relevance - redundancy
     
     # Select best feature without reordering
     best_idx <- which.max(current_scores)
@@ -303,7 +303,7 @@ CIFE <- function(X, Y, beta = 1, k = ncol(X)) {
   )
 }
 
-JMI <- function(X, Y, beta = 1, k = ncol(X)) {
+JMI <- function(X, Y, k = ncol(X)) {
   # Convert input keeping native column order
   X <- as.data.frame(X)
   Y <- as.factor(Y)
@@ -321,7 +321,7 @@ JMI <- function(X, Y, beta = 1, k = ncol(X)) {
   for (i in 1:k) {
     remaining <- setdiff(features, selected)
     
-    # Calculate CIFE criterion: MI(f;Y) - β[MI(f;S) - CMI(f;S|Y)]
+    # Calculate JMI criterion: MI(f;Y) - 1/|S|sum[MI(f;S) - CMI(f;S|Y)]
     if (length(selected) > 0) {
       redundancy <- sapply(remaining, function(f) {
         sum(sapply(selected, function(s) {
@@ -329,7 +329,7 @@ JMI <- function(X, Y, beta = 1, k = ncol(X)) {
           mi_fs <- mutualinformation_btw_features(n,X[[f]], X[[s]] )
           # Calculate CMI(f;S|Y) - conditional mutual information
           cmi_fs_y <- mutualinformation_class_relevance(n,c,X[[f]],X[[s]], Y)
-          # Core CIFE term: MI(f;S) - CMI(f;S|Y)
+          # Core JMI term: MI(f;S) - CMI(f;S|Y)
           mi_fs - cmi_fs_y
         }))  / length(selected)
       })
@@ -342,8 +342,8 @@ JMI <- function(X, Y, beta = 1, k = ncol(X)) {
       mutualinformation(discretize(X[[f]]), Y)
     })
     
-    # CIFE score: MI(f;Y) - β[MI(f;S) - CMI(f;S|Y)]
-    current_scores <- relevance - beta * redundancy
+    # JMI score: MI(f;Y) - 1/|S|sum[MI(f;S) - CMI(f;S|Y)]
+    current_scores <- relevance - redundancy
     
     # Select best feature without reordering
     best_idx <- which.max(current_scores)
@@ -393,7 +393,7 @@ CMIM <- function(X, Y, k = ncol(X)) {
           mi_fs <- mutualinformation_btw_features(n,X[[f]], X[[s]] )
           # Calculate CMI(f;Y|S) - conditional mutual information
           cmi_fy_s <- mutualinformation_class_relevance(n,c,X[[f]],X[[s]], Y)
-          # Core DMIM term: MI(f;S) - CMI(f;Y|S)
+          # Core CMIM term: MI(f;S) - CMI(f;Y|S)
           mi_fs - cmi_fy_s
         }))
       })
