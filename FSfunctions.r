@@ -40,19 +40,25 @@ mutualinformation_btw_features <- function(n,x,s) {
 }
 
 # c = length(unique(C))  
-mutualinformation_class_relevance <- function(n,c,X,x_disc,s_disc,y) {
-  # MI(X_i,X_s|Y) = H(X_i|Y) + H(X_j|Y) - H(X_i,X_j|Y)
-  H_y <- entropy(y)
-  H_x_y <- entropy(cbind(x_disc, y)) - H_y
-  H_s_y <- entropy(cbind(s_disc, y)) - H_y
-  H_x_s_y <- entropy(cbind(x_disc, s_disc, y)) - H_y
+mutualinformation_class_relevance <- function(n,c,x,s,y) {
+  x_disc <- discretize(x)
+  s_disc <- discretize(s)
   
   # Calculate entropy error
   # delta
-  delta_join <- (max(X) - min(X)) / calculate_k(n,"u")
-  delta_cond <- (max(X) - min(X)) / calculate_k(n,"c",c)
+  delta_univ_x <- (max(x) - min(x)) / calculate_k(n,"u")
+  delta_univ_s <- (max(s) - min(s)) / calculate_k(n,"u")
   
-  mi <- H_x_y + H_s_y + 2*log(delta_join) - (H_x_s_y + 2*log(delta_cond))
+  delta_cond_x <- (max(x) - min(x)) / calculate_k(n,"c",c)
+  delta_cond_s <- (max(s) - min(s)) / calculate_k(n,"c",c)
+  
+  # MI(X_i,X_s|Y) = H(X_i|Y) + H(X_j|Y) - H(X_i,X_j|Y)
+  H_Y <- entropy(y)
+  H_XY <- entropy(cbind(x_disc, y)) - H_Y + log(delta_univ_x) 
+  H_SY <- entropy(cbind(s_disc, y)) - H_Y + log(delta_univ_s) 
+  H_XSY <- entropy(cbind(x_disc, s_disc, y)) - H_Y + log(delta_cond_x) + log(delta_cond_s) 
+  
+  mi <- H_XY + H_SY - H_XSY
   pmax(0, mi)
 }
 
@@ -262,7 +268,7 @@ CIFE <- function(X, Y, beta = 1, k = ncol(X)) {
           # Calculate MI(f;S) - mutual information
           mi_fs <- mutualinformation_btw_features(n,X[[f]], X[[s]] )
           # Calculate CMI(f;S|Y) - conditional mutual information
-          cmi_fs_y <- mutualinformation_class_relevance(n,c,X,discretize(X[[f]]), discretize(X[[s]]), Y)
+          cmi_fs_y <- mutualinformation_class_relevance(n,c,X[[f]],X[[s]], Y)
           # Core CIFE term: MI(f;S) - CMI(f;S|Y)
           mi_fs - cmi_fs_y
         }))
@@ -322,7 +328,7 @@ JMI <- function(X, Y, beta = 1, k = ncol(X)) {
           # Calculate MI(f;S) - mutual information
           mi_fs <- mutualinformation_btw_features(n,X[[f]], X[[s]] )
           # Calculate CMI(f;S|Y) - conditional mutual information
-          cmi_fs_y <- mutualinformation_class_relevance(n,c,X,discretize(X[[f]]), discretize(X[[s]]), Y)
+          cmi_fs_y <- mutualinformation_class_relevance(n,c,X[[f]],X[[s]], Y)
           # Core CIFE term: MI(f;S) - CMI(f;S|Y)
           mi_fs - cmi_fs_y
         }))  / length(selected)
@@ -386,7 +392,7 @@ CMIM <- function(X, Y, k = ncol(X)) {
           # Calculate MI(f;S) - mutual information
           mi_fs <- mutualinformation_btw_features(n,X[[f]], X[[s]] )
           # Calculate CMI(f;Y|S) - conditional mutual information
-          cmi_fy_s <- mutualinformation_class_relevance(n,c,X,discretize(X[[f]]), discretize(X[[s]]), Y) 
+          cmi_fy_s <- mutualinformation_class_relevance(n,c,X[[f]],X[[s]], Y)
           # Core DMIM term: MI(f;S) - CMI(f;Y|S)
           mi_fs - cmi_fy_s
         }))
@@ -445,7 +451,7 @@ DMIM <- function(X, Y, k = ncol(X)) {
         - 
         max(sapply(selected, function(s) {
           # max CMI(f;Y|S) - conditional mutual information
-          mutualinformation_class_relevance(n, c, X, discretize(X[[f]]), discretize(X[[s]]), Y) 
+          mutualinformation_class_relevance(n,c,X[[f]],X[[s]], Y)
         }))
       })
     } else {
