@@ -91,7 +91,7 @@ S <- c()
 
 # MIM (Mutual Information Maximization)
 # mim_ranking <- mi_values %>% arrange(desc(importance))
-mim_ranking <- praznik::MIM(X, Y, k = length(feature_names))
+mim_ranking <- MIM(X, Y, k = length(feature_names))
 print("MIM Ranking:")
 print(mim_ranking)
 
@@ -103,12 +103,11 @@ print("MIFS Ranking:")
 print(mifs_ranking)
 
 # mRMR (Minimum Redundancy Maximum Relevance)
-mrmr_ranking <- praznik::MRMR(X, Y, k = length(feature_names))
+mrmr_ranking <- MRMR(X, Y, k = length(feature_names))
 print("mRMR Ranking:")
 print(mrmr_ranking)
 
 # maxMIFS (Máxima Penalización de Información Mutua)
-# already sorted by scores
 max_mifs_ranking <- maxMIFS(X, Y, k = length(feature_names))
 print("maxMIFS Ranking:")
 print(max_mifs_ranking)
@@ -120,17 +119,16 @@ print("CIFE Ranking:")
 print(cife_ranking)
 
 # JMI (Joint Mutual Information)
-jmi_ranking <- praznik::JMI(X, Y, k = length(feature_names))
+jmi_ranking <- JMI(X, Y, k = length(feature_names))
 print("JMI Ranking:")
 print(jmi_ranking)
 
 # CMIM (Conditional Mutual Information Maximization)
-cmim_ranking <- praznik::CMIM(X, Y, k = length(feature_names))
+cmim_ranking <- CMIM(X, Y, k = length(feature_names))
 print("CMIM Ranking:")
 print(cmim_ranking)
 
 # DMIM (Dynamic Mutual Information Maximization)
-# already sorted by scores
 dmim_ranking <- DMIM(X, Y, k = length(feature_names))
 print("DMIM Ranking:")
 print(dmim_ranking)
