@@ -35,6 +35,23 @@ mutualinformation_btw_features <- function(n,X,x_disc,s_disc) {
   mi <- H_X + H_S - H_SY
 }
 
+# c = length(unique(C))  
+mutualinformation_class_relevance <- function(n,c,X,x_disc,s_disc,y) {
+  # MI(X_i,X_s|Y) = H(X_i|Y) + H(X_j|Y) - H(X_i,X_j|Y)
+  H_y <- entropy(y)
+  H_x_y <- entropy(cbind(x_disc, y)) - H_y
+  H_s_y <- entropy(cbind(s_disc, y)) - H_y
+  H_x_s_y <- entropy(cbind(x_disc, s_disc, y)) - H_y
+  
+  # Calculate entropy error
+  # delta
+  delta_join <- (max(X) - min(X)) / calculate_k(n,"u")
+  delta_cond <- (max(X) - min(X)) / calculate_k(n,"c",c)
+  
+  H_XSIY <- H_x_y + H_s_y + 2*log(delta_join) - H_x_s_y + 2*log(delta_cond)
+  pmax(0, mi)
+}
+
 MIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
   # Convert input to data frame and factor
   X <- as.data.frame(X)
