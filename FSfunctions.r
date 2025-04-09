@@ -1,6 +1,15 @@
 library(infotheo)
 library(praznik)
 
+mutualinformation <- function(x_disc,y_disc) {
+  H_X <- entropy(x_disc)
+  H_Y <- entropy(y_disc)
+  H_XY <- infotheo::entropy(cbind(x_disc, y_disc))
+  
+  # no need for the correction factor as it cancels out
+  mi <- H_X + H_Y - H_XY      
+}
+
 MIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
   # Convert input to data frame and factor
   X <- as.data.frame(X)
@@ -19,7 +28,7 @@ MIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
   # Precompute MI(f;Y) - mutual information with target
   mi_target <- sapply(X, function(x) {
     x_disc <- discretize(x)
-    mutinformation(x_disc, Y) / H_Y  # Normalized MI(f;Y)
+    mutualinformation(x_disc, Y) / H_Y  # Normalized MI(f;Y)
   })
   
   for (i in 1:k) {
@@ -27,9 +36,9 @@ MIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
     remaining <- setdiff(feature_names, selected)
     redundancy <- if (length(selected) > 0) {
       sapply(remaining, function(f) {
-        mean(sapply(selected, function(s) {
+        sum(sapply(selected, function(s) {
           # Calculate MI(f;S) - mutual information between features
-          mutinformation(discretize(X[[f]]), discretize(X[[s]])) / H_Y
+          mutualinformation(discretize(X[[f]]), discretize(X[[s]])) / H_Y
         }))
       })
     } else {
