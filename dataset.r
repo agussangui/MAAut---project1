@@ -1,5 +1,4 @@
 if (!require("FSelectorRcpp")) install.packages("FSelectorRcpp", dependencies=TRUE)
-if (!require("praznik")) install.packages("praznik", dependencies=TRUE)
 if (!require("dplyr")) install.packages("dplyr", dependencies=TRUE)
 if (!require("infotheo")) install.packages("infotheo", dependencies=TRUE)
 if (!require("mRMRe")) install.packages("mRMRe", dependencies=TRUE)
@@ -9,7 +8,6 @@ if (!require("GGally")) install.packages("GGally", dependencies=TRUE)
 #install.packages("FSelectorRcpp")
 
 library(FSelectorRcpp)
-library(praznik)
 library(dplyr)
 library(infotheo)
 library(mRMRe)
@@ -81,7 +79,7 @@ print(mi_values)
 # Convert to lists
 X <- train_data[, feature_names]
 Y <- train_data$Class
-
+print(Y)
 # Selected features list
 S <- c()
 

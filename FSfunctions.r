@@ -1,5 +1,4 @@
 library(infotheo)
-library(praznik)
 
 calculate_k <- function(n, type = "u", c = NULL) {
   if (type == "u") {
@@ -64,13 +63,10 @@ MIM <- function(X, Y, beta = 0.5, k = ncol(X)) {
   selected <- character(0)
   scores <- setNames(numeric(length(feature_names)), feature_names)
   
-  # Precompute entropy
-  H_Y <- entropy(Y) 
-  
   # Precompute MI(f;Y) - mutual information with target
   mi_target <- sapply(X, function(x) {
     x_disc <- discretize(x)
-    mutualinformation(x_disc, Y) / H_Y  # Normalized MI(f;Y)
+    mutualinformation(x_disc, Y)
   })
   
   
@@ -95,13 +91,10 @@ MIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
   selected <- character(0)
   scores <- setNames(numeric(length(feature_names)), feature_names)
   
-  # Precompute entropy
-  H_Y <- entropy(Y) 
-  
   # Precompute MI(f;Y) - mutual information with target
   mi_target <- sapply(X, function(x) {
     x_disc <- discretize(x)
-    mutualinformation(x_disc, Y) / H_Y  # Normalized MI(f;Y)
+    mutualinformation(x_disc, Y)
   })
   
   for (i in 1:k) {
@@ -111,7 +104,7 @@ MIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
       sapply(remaining, function(f) {
         sum(sapply(selected, function(s) {
           # Calculate MI(f;S) - mutual information between features
-          mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]])) / H_Y
+          mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]]))
         }))
       })
     } else {
@@ -148,13 +141,10 @@ mRMR <- function(X, Y, k = ncol(X)) {
   selected <- character(0)
   scores <- setNames(numeric(length(feature_names)), feature_names)
   
-  # Precompute entropy
-  H_Y <- entropy(Y) 
-  
   # Precompute MI(f;Y) - mutual information with target
   mi_target <- sapply(X, function(x) {
     x_disc <- discretize(x)
-    mutualinformation(x_disc, Y) / H_Y  # Normalized MI(f;Y)
+    mutualinformation(x_disc, Y)
   })
   
   for (i in 1:k) {
@@ -164,7 +154,7 @@ mRMR <- function(X, Y, k = ncol(X)) {
       sapply(remaining, function(f) {
         sum(sapply(selected, function(s) {
           # Calculate MI(f;S) - mutual information between features
-          mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]])) / H_Y
+          mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]]))
         })) / length(selected)
       })
     } else {
@@ -201,13 +191,10 @@ maxMIFS <- function(X, Y, beta = 1, k = ncol(X)) {
   selected <- character(0)
   scores <- setNames(numeric(length(feature_names)), feature_names)
   
-  # Precompute entropy
-  H_Y <- entropy(Y) 
-  
   # Precompute MI(f;Y) - mutual information with target
   mi_target <- sapply(X, function(x) {
     x_disc <- discretize(x)
-    mutualinformation(x_disc, Y) / H_Y  # Normalized MI(f;Y)
+    mutualinformation(x_disc, Y)
   })
   
   for (i in 1:k) {
@@ -217,7 +204,7 @@ maxMIFS <- function(X, Y, beta = 1, k = ncol(X)) {
       sapply(remaining, function(f) {
         max(sapply(selected, function(s) {
           # Calculate MI(f;S) - mutual information between features
-          mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]])) / H_Y
+          mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]]))
         }))
       })
     } else {
@@ -255,9 +242,6 @@ CIFE <- function(X, Y, beta = 1, k = ncol(X)) {
   scores <- setNames(rep(NA, ncol(X)), features)
   selected <- character(0)
   
-  # Precompute entropy
-  H_Y <- entropy(Y)
-  
   for (i in 1:k) {
     remaining <- setdiff(features, selected)
     
@@ -266,9 +250,9 @@ CIFE <- function(X, Y, beta = 1, k = ncol(X)) {
       redundancy <- sapply(remaining, function(f) {
         sum(sapply(selected, function(s) {
           # Calculate MI(f;S) - mutual information
-          mi_fs <- mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]])) / H_Y
+          mi_fs <- mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]]))
           # Calculate CMI(f;S|Y) - conditional mutual information
-          cmi_fs_y <- mutualinformation_class_relevance(n,c,X,discretize(X[[f]]), discretize(X[[s]]), Y) / H_Y
+          cmi_fs_y <- mutualinformation_class_relevance(n,c,X,discretize(X[[f]]), discretize(X[[s]]), Y)
           # Core CIFE term: MI(f;S) - CMI(f;S|Y)
           mi_fs - cmi_fs_y
         }))
@@ -279,7 +263,7 @@ CIFE <- function(X, Y, beta = 1, k = ncol(X)) {
     
     # Calculate relevance MI(f;Y)
     relevance <- sapply(remaining, function(f) {
-      mutualinformation(discretize(X[[f]]), Y) / H_Y
+      mutualinformation(discretize(X[[f]]), Y) 
     })
     
     # CIFE score: MI(f;Y) - β[MI(f;S) - CMI(f;S|Y)]
@@ -316,9 +300,6 @@ JMI <- function(X, Y, beta = 1, k = ncol(X)) {
   scores <- setNames(rep(NA, ncol(X)), features)
   selected <- character(0)
   
-  # Precompute entropy
-  H_Y <- entropy(Y)
-  
   for (i in 1:k) {
     remaining <- setdiff(features, selected)
     
@@ -327,9 +308,9 @@ JMI <- function(X, Y, beta = 1, k = ncol(X)) {
       redundancy <- sapply(remaining, function(f) {
         sum(sapply(selected, function(s) {
           # Calculate MI(f;S) - mutual information
-          mi_fs <- mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]])) / H_Y
+          mi_fs <- mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]]))
           # Calculate CMI(f;S|Y) - conditional mutual information
-          cmi_fs_y <- mutualinformation_class_relevance(n,c,X,discretize(X[[f]]), discretize(X[[s]]), Y) / H_Y
+          cmi_fs_y <- mutualinformation_class_relevance(n,c,X,discretize(X[[f]]), discretize(X[[s]]), Y)
           # Core CIFE term: MI(f;S) - CMI(f;S|Y)
           mi_fs - cmi_fs_y
         }))  / length(selected)
@@ -340,7 +321,7 @@ JMI <- function(X, Y, beta = 1, k = ncol(X)) {
     
     # Calculate relevance MI(f;Y)
     relevance <- sapply(remaining, function(f) {
-      mutualinformation(discretize(X[[f]]), Y) / H_Y
+      mutualinformation(discretize(X[[f]]), Y)
     })
     
     # CIFE score: MI(f;Y) - β[MI(f;S) - CMI(f;S|Y)]
@@ -376,13 +357,10 @@ CMIM <- function(X, Y, k = ncol(X)) {
   selected <- character(0)
   scores <- setNames(numeric(length(feature_names)), feature_names)
   
-  # Precompute entropy
-  H_Y <- entropy(Y) 
-  
   # Precompute MI(f;Y) - mutual information with target
   mi_target <- sapply(X, function(x) {
     x_disc <- discretize(x)
-    mutualinformation(x_disc, Y) / H_Y  # Normalized MI(f;Y)
+    mutualinformation(x_disc, Y)
   })
   
   for (i in 1:k) {
@@ -392,9 +370,9 @@ CMIM <- function(X, Y, k = ncol(X)) {
       sapply(remaining, function(f) {
         max(sapply(selected, function(s) {
           # Calculate MI(f;S) - mutual information
-          mi_fs <- mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]])) / H_Y
+          mi_fs <- mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]])) 
           # Calculate CMI(f;Y|S) - conditional mutual information
-          cmi_fy_s <- mutualinformation_class_relevance(n,c,X,discretize(X[[f]]), discretize(X[[s]]), Y) / H_Y
+          cmi_fy_s <- mutualinformation_class_relevance(n,c,X,discretize(X[[f]]), discretize(X[[s]]), Y) 
           # Core DMIM term: MI(f;S) - CMI(f;Y|S)
           mi_fs - cmi_fy_s
         }))
