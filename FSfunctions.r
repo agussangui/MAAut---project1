@@ -1,19 +1,46 @@
 library(infotheo)
 library(praznik)
 
-mutualinformation <- function(x_disc,y_disc) {
-  H_X <- entropy(x_disc)
-  H_Y <- entropy(y_disc)
-  H_XY <- infotheo::entropy(cbind(x_disc, y_disc))
+calculate_k <- function(n, type = "u", c = NULL) {
+  if (type == "u") {
+    ceiling(sqrt(n))
+  } else if (type == "j") {
+    ceiling(n^(1/4))
+  } else if (type == "c" && !is.null(c)) {
+    ceiling(n^(1/4) / c)
+  } else {
+    stop("Invalid type of entropy")
+  }
+}
+
+mutualinformation <- function(x_disc,y) {
+    H_X <- entropy(x_disc)
+    H_Y <- entropy(y)
+    H_XY <- infotheo::entropy(cbind(x_disc, y))
+    
+    # no need for the correction factor as it cancels out
+    mi <- H_X + H_Y - H_XY      
+}
+
+mutualinformation_btw_features <- function(n,X,x_disc,s_disc) {
+  # Calculate entropy error
+  # deltas
+  delta_univ <- (max(X) - min(X)) / calculate_k(n,"u")
+  delta_joint <- (max(X) - min(X)) / calculate_k(n,"j")
   
-  # no need for the correction factor as it cancels out
-  mi <- H_X + H_Y - H_XY      
+  H_X <- entropy(x_disc) + log(delta_univ) 
+  H_S <- entropy(s_disc) + log(delta_univ) 
+  H_SY <- infotheo::entropy(cbind(x_disc, s_disc)) + 2*log(delta_joint)
+  
+  mi <- H_X + H_S - H_SY
 }
 
 MIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
   # Convert input to data frame and factor
   X <- as.data.frame(X)
   Y <- as.factor(Y)
+  
+  n <- nrow(X)
   
   # Get feature names in original order
   feature_names <- colnames(X)
@@ -23,7 +50,7 @@ MIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
   scores <- setNames(numeric(length(feature_names)), feature_names)
   
   # Precompute entropy
-  H_Y <- entropy(Y)
+  H_Y <- entropy(Y) 
   
   # Precompute MI(f;Y) - mutual information with target
   mi_target <- sapply(X, function(x) {
@@ -38,7 +65,7 @@ MIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
       sapply(remaining, function(f) {
         sum(sapply(selected, function(s) {
           # Calculate MI(f;S) - mutual information between features
-          mutualinformation(discretize(X[[f]]), discretize(X[[s]])) / H_Y
+          mutualinformation_btw_features(n,X,discretize(X[[f]]), discretize(X[[s]])) / H_Y
         }))
       })
     } else {
@@ -57,7 +84,7 @@ MIFS <- function(X, Y, beta = 0.5, k = ncol(X)) {
   list(
     selection = structure(match(feature_names, feature_names), 
                           names = feature_names),
-    score = scores
+    score = sort(scores, decreasing = TRUE)
   )
 }
 
